@@ -11,10 +11,10 @@ def transcribe_audio(audio_file_path):
     """
     try:
         client = OpenAI(api_key=st.secrets["API"])
-
+        st.write(client.models.list())
         with open(audio_file_path, "rb") as audio_file:
             transcript = client.audio.transcriptions.create(
-              model="whisper-2", 
+              model="whisper-1", 
               file=audio_file)
         return transcript.text
     except Exception as e:
