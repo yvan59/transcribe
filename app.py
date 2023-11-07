@@ -16,8 +16,7 @@ def transcribe_audio(audio_file_path):
             transcript = client.audio.transcriptions.create(
               model="whisper-1", 
               file=audio_file)
-        st.write(transcript)
-        return transcript["text"]
+        return transcript.text
     except Exception as e:
         # If there's an error, print it out on the app
         st.error(f"An error occurred during transcription: {e}")
