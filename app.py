@@ -34,7 +34,7 @@ def save_uploaded_file(uploaded_file):
         return None
 
 def main():
-    st.title('Audio Transcription App')
+    st.title('Transcribe audio')
 
     # User file upload section
     uploaded_file = st.file_uploader("Choose an audio file...", type=["mp3", "wav", "ogg", "m4a"])
