@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from pathlib import Path
-import openai
+from openai import OpenAI
 
 # Function to transcribe the audio using OpenAI's Whisper model
 def transcribe_audio(audio_file_path):
@@ -10,12 +10,12 @@ def transcribe_audio(audio_file_path):
     and return the transcribed text.
     """
     try:
+        client = OpenAI(api_key=st.secrets["API"])
+
         with open(audio_file_path, "rb") as audio_file:
-            transcript = openai.AudioTranscription.create(
-                model="whisper-1",
-                file=audio_file,
-                api_key=st.secrets["API"]
-            )
+            transcript = client.audio.transcriptions.create(
+              model="whisper-1", 
+              file=audio_file)
         return transcript["text"]
     except Exception as e:
         # If there's an error, print it out on the app
