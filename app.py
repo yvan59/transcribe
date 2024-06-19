@@ -125,7 +125,7 @@ if uploaded_file is not None:
             st.error("Transcription failed.")
 
         # Cleanup the temporary file
-        os.remove(saved_file_path)
+        # os.remove(saved_file_path)
     else:
         st.error("Failed to save the file.")
 else:
