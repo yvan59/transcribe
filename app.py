@@ -4,6 +4,12 @@ from pathlib import Path
 from openai import OpenAI
 from pydub import AudioSegment
 
+system_message = """
+You will be presented with a stream of consciousness transcript. Your job is to regurgitate the entire transcript and leave out NONE of the key ideas, in the exact language of the original 
+transcript whenever possible and present the content in the same order as the transcript. However, the text you return should be a cleaned up version of the transcript and be 'all meat, no fat.' This does not mean to leave out ANY self-contained ideas
+(do not leave out any), but rather to present the SAME ideas in a slightly cleaner format so it doesn't read like a rambling stream of consciousness and instead is a cleaned up regurgitation of it.
+"""
+
 # Initialize session state
 if 'transcription' not in st.session_state:
     st.session_state.transcription = ""
@@ -67,11 +73,11 @@ def process_transcript(transcript):
         completion = client.chat.completions.create(
             model="gpt-4o",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant. Systematize the following transcript."},
+                {"role": "system", "content": system_message},
                 {"role": "user", "content": transcript}
             ]
         )
-        return completion.choices[0].message
+        return completion.choices[0].message.content
 
     except Exception as e:
         st.error(f"An error occurred during processing: {e}")
@@ -111,7 +117,10 @@ if uploaded_file is not None:
 
         # Display the transcription if successful
         if transcription:
-            st.text_area("Transcription:", transcription, height=300)
+            st.text_area("Raw transcript:", transcription, height=300)
+            with st.spinner('Processing transcript...'):
+                processed_info = process_transcript(st.session_state.transcription)
+            st.write("Processed Transcript:", st.session_state.processed_info, height=300)
         else:
             st.error("Transcription failed.")
 
@@ -121,17 +130,6 @@ if uploaded_file is not None:
         st.error("Failed to save the file.")
 else:
     st.info("Please upload an audio file.")
-
-# Button to process the transcript with GPT-4o
-if st.session_state.transcription:
-    if st.button("Process Transcript"):
-        processed_info = process_transcript(st.session_state.transcription)
-        if processed_info:
-            st.session_state.processed_info = processed_info
-
-# Display the processed information
-if st.session_state.processed_info:
-    st.text_area("Processed Information:", st.session_state.processed_info, height=300)
 
 # import streamlit as st
 # import os
