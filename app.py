@@ -71,7 +71,8 @@ def process_transcript(transcript):
                 {"role": "user", "content": transcript}
             ]
         )
-        return completion.choices[0].message['content']
+        return completion.choices[0].message
+
     except Exception as e:
         st.error(f"An error occurred during processing: {e}")
         return None
