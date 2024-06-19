@@ -119,8 +119,8 @@ if uploaded_file is not None:
         if transcription:
             st.text_area("Raw transcript:", transcription, height=300)
             with st.spinner('Processing transcript...'):
-                processed_info = process_transcript(st.session_state.transcription)
-            st.write("Processed Transcript:", st.session_state.processed_info, height=300)
+                st.session_state.processed_info = process_transcript(st.session_state.transcription)
+            st.write("**Processed Transcript:**", st.session_state.processed_info)
         else:
             st.error("Transcription failed.")
 
