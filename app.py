@@ -2,57 +2,94 @@ import streamlit as st
 import os
 from pathlib import Path
 from openai import OpenAI
+from pydub import AudioSegment
 
 # Function to transcribe the audio using OpenAI's Whisper model
 def transcribe_audio(audio_file_path):
-    """
-    This function will use the OpenAI client to transcribe the audio file
-    and return the transcribed text.
-    """
     try:
         client = OpenAI(api_key=st.secrets["API"])
         with open(audio_file_path, "rb") as audio_file:
             transcript = client.audio.transcriptions.create(
               model="whisper-1", 
-              file=audio_file)
+              file=audio_file
+            )
         return transcript.text
     except Exception as e:
-        # If there's an error, print it out on the app
         st.error(f"An error occurred during transcription: {e}")
         return None
 
-# Function to save the uploaded file to a temporary directory
-def save_uploaded_file(uploaded_file):
+# Function to save the uploaded file to a temporary directory and convert to MP3
+def save_and_convert_uploaded_file(uploaded_file):
     try:
         Path("tempDir").mkdir(parents=True, exist_ok=True)
-        file_path = os.path.join("tempDir", uploaded_file.name)
-        with open(file_path, "wb") as f:
+        original_file_path = os.path.join("tempDir", uploaded_file.name)
+        with open(original_file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
-        return file_path
+        
+        # Convert to MP3
+        audio = AudioSegment.from_file(original_file_path)
+        mp3_file_path = os.path.join("tempDir", f"{Path(uploaded_file.name).stem}.mp3")
+        audio.export(mp3_file_path, format="mp3")
+        
+        # Remove the original file after conversion
+        os.remove(original_file_path)
+        
+        return mp3_file_path
     except Exception as e:
-        st.error(f"Failed to save file: {e}")
+        st.error(f"Failed to save or convert file: {e}")
         return None
 
+# Function to split audio file into smaller chunks
+def split_audio(input_file, max_duration_ms=20*60*1000):
+    audio = AudioSegment.from_file(input_file)
+    duration_ms = len(audio)
+
+    parts = []
+    for start_ms in range(0, duration_ms, max_duration_ms):
+        end_ms = min(start_ms + max_duration_ms, duration_ms)
+        part = audio[start_ms:end_ms]
+        part_file_path = f"tempDir/{os.path.basename(input_file).split('.')[0]}_part{start_ms // max_duration_ms + 1}.mp3"
+        part.export(part_file_path, format="mp3")
+        parts.append(part_file_path)
+
+    return parts
+
 def main():
-    st.title('Transcribe audio')
+    st.title('Transcribe Audio')
 
     # User file upload section
     uploaded_file = st.file_uploader("Choose an audio file...", type=["mp3", "wav", "ogg", "m4a"])
 
     if uploaded_file is not None:
-        # Save the file to a temporary directory
-        saved_file_path = save_uploaded_file(uploaded_file)
+        # Save the file to a temporary directory and convert to MP3
+        saved_file_path = save_and_convert_uploaded_file(uploaded_file)
         if saved_file_path:
-            # File saved successfully
+            # File saved and converted successfully
             st.audio(saved_file_path)
             st.write("Transcribing... This may take a while for large files.")
-            
-            # Transcribe the audio
-            transcription = transcribe_audio(saved_file_path)
-            
+
+            # Split the audio file if it is too long
+            audio = AudioSegment.from_file(saved_file_path)
+            if len(audio) > 20 * 60 * 1000:
+                st.write("The audio file is too large and will be processed in chunks.")
+                parts = split_audio(saved_file_path)
+            else:
+                parts = [saved_file_path]
+
+            # Transcribe each part
+            transcription = ""
+            for part in parts:
+                part_transcription = transcribe_audio(part)
+                if part_transcription:
+                    transcription += part_transcription
+                os.remove(part)
+
             # Display the transcription if successful
             if transcription:
                 st.text_area("Transcription:", transcription, height=300)
+            else:
+                st.error("Transcription failed.")
+
             # Cleanup the temporary file
             os.remove(saved_file_path)
         else:
@@ -63,3 +100,71 @@ def main():
 # Run the app
 if __name__ == "__main__":
     main()
+
+
+
+# import streamlit as st
+# import os
+# from pathlib import Path
+# from openai import OpenAI
+
+# # Function to transcribe the audio using OpenAI's Whisper model
+# def transcribe_audio(audio_file_path):
+#     """
+#     This function will use the OpenAI client to transcribe the audio file
+#     and return the transcribed text.
+#     """
+#     try:
+#         client = OpenAI(api_key=st.secrets["API"])
+#         with open(audio_file_path, "rb") as audio_file:
+#             transcript = client.audio.transcriptions.create(
+#               model="whisper-1", 
+#               file=audio_file)
+#         return transcript.text
+#     except Exception as e:
+#         # If there's an error, print it out on the app
+#         st.error(f"An error occurred during transcription: {e}")
+#         return None
+
+# # Function to save the uploaded file to a temporary directory
+# def save_uploaded_file(uploaded_file):
+#     try:
+#         Path("tempDir").mkdir(parents=True, exist_ok=True)
+#         file_path = os.path.join("tempDir", uploaded_file.name)
+#         with open(file_path, "wb") as f:
+#             f.write(uploaded_file.getbuffer())
+#         return file_path
+#     except Exception as e:
+#         st.error(f"Failed to save file: {e}")
+#         return None
+
+# def main():
+#     st.title('Transcribe audio')
+
+#     # User file upload section
+#     uploaded_file = st.file_uploader("Choose an audio file...", type=["mp3", "wav", "ogg", "m4a"])
+
+#     if uploaded_file is not None:
+#         # Save the file to a temporary directory
+#         saved_file_path = save_uploaded_file(uploaded_file)
+#         if saved_file_path:
+#             # File saved successfully
+#             st.audio(saved_file_path)
+#             st.write("Transcribing... This may take a while for large files.")
+            
+#             # Transcribe the audio
+#             transcription = transcribe_audio(saved_file_path)
+            
+#             # Display the transcription if successful
+#             if transcription:
+#                 st.text_area("Transcription:", transcription, height=300)
+#             # Cleanup the temporary file
+#             os.remove(saved_file_path)
+#         else:
+#             st.error("Failed to save the file.")
+#     else:
+#         st.info("Please upload an audio file.")
+
+# # Run the app
+# if __name__ == "__main__":
+#     main()
