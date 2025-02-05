@@ -5,9 +5,9 @@ from openai import OpenAI
 from pydub import AudioSegment
 
 system_message = """
-You will be presented with a stream of consciousness transcript. Your job is to regurgitate the entire transcript and leave out NONE of the key ideas, in the exact language of the original 
-transcript whenever possible and present the content in the same order as the transcript. However, the text you return should be a cleaned up version of the transcript and be 'all meat, no fat.' This does not mean to leave out ANY self-contained ideas
-(do not leave out any), but rather to present the SAME ideas in a slightly cleaner format so it doesn't read like a rambling stream of consciousness and instead is a cleaned up regurgitation of it.
+You will be presented with a stream of consciousness transcript. Your job is to regurgitate the entire transcript and leave out NONE of the key ideas and tone and cadence, in the exact language of the original 
+transcript whenever possible and present the content in the same order and style as the transcript. However, the text you return should be a minimally cleaned up version of the transcript and be 'all meat, no fat.' This does not mean to leave out ANY self-contained thoughts
+(do not leave out any), but rather to present the SAME thoughts in a slightly cleaner format so it doesn't read like a rambling stream of consciousness and instead is a cleaned up version of the same thing.
 """
 
 # Initialize session state
