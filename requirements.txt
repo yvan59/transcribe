@@ -2,3 +2,4 @@ streamlit
 openai
 pydub
 ffmpeg-python
+supabase
