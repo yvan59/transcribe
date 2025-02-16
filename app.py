@@ -24,17 +24,9 @@ supabase_key = st.secrets["SUPABASE_SERVICE_KEY"]
 supabase: Client = create_client(supabase_url, supabase_key)
 # ---------------------------
 
-system_message = """
-You will be presented with a stream of consciousness transcript. Your job is to regurgitate the entire transcript and leave out NONE of the key ideas and tone and cadence, in the exact language of the original 
-transcript whenever possible and present the content in the same order and style as the transcript. However, the text you return should be a minimally cleaned up version of the transcript and be 'all meat, no fat.' This does not mean to leave out ANY self-contained thoughts
-(do not leave out any), but rather to present the SAME thoughts in a slightly cleaner format so it doesn't read like a rambling stream of consciousness and instead is a cleaned up version of the same thing.
-"""
-
 # Initialize session state
 if 'transcription' not in st.session_state:
     st.session_state.transcription = ""
-if 'processed_info' not in st.session_state:
-    st.session_state.processed_info = ""
 
 # Function to transcribe the audio using OpenAI's Whisper model
 def transcribe_audio(audio_file_path):
@@ -85,22 +77,6 @@ def split_audio(input_file, max_duration_ms=20*60*1000):
         parts.append(part_file_path)
 
     return parts
-
-# Function to process the transcript with GPT-4o
-def process_transcript(transcript):
-    try:
-        client = OpenAI(api_key=st.secrets["API"])
-        completion = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": transcript}
-            ]
-        )
-        return completion.choices[0].message.content
-    except Exception as e:
-        st.error(f"An error occurred during processing: {e}")
-        return None
 
 # -------- New Functions for Additional Tasks --------
 def clean_transcript(transcript):
@@ -164,89 +140,78 @@ tabs = st.tabs(["Transcribe", "View Database", "LLM on Data"])
 with tabs[0]:
     st.title('Transcribe Audio')
 
+    # Pre-select tasks
+    tasks = ["Clean Transcript", "Analyze Transcript", "Summary"]
+    task_options = st.multiselect("Select tasks to perform:", tasks, default=tasks)
+
     # User file upload section
     uploaded_file = st.file_uploader("Choose an audio file...", type=["mp3", "wav", "ogg", "m4a"])
 
-    if uploaded_file is not None:
-        # Save the file to a temporary directory and convert to MP3
-        saved_file_path = save_and_convert_uploaded_file(uploaded_file)
-        if saved_file_path:
-            # File saved and converted successfully
-            st.audio(saved_file_path)
-            st.write("Transcribing... This may take a while for large files.")
-
-            # Split the audio file if it is too long
-            audio = AudioSegment.from_file(saved_file_path)
-            if len(audio) > 20 * 60 * 1000:
-                st.write("The audio file is too large and will be processed in chunks.")
-                parts = split_audio(saved_file_path)
-            else:
-                parts = [saved_file_path]
-
-            # Transcribe each part
-            transcription = ""
-            for part in parts:
-                part_transcription = transcribe_audio(part)
-                if part_transcription:
-                    transcription += part_transcription
-                os.remove(part)
-
-            # Store the transcription in session state
-            st.session_state.transcription = transcription
-
-            # Display the transcription if successful
-            if transcription:
-                st.text_area("Raw transcript:", transcription, height=300)
-                with st.spinner('Processing transcript...'):
-                    st.session_state.processed_info = process_transcript(st.session_state.transcription)
-                st.write("**Processed Transcript:**", st.session_state.processed_info)
-            else:
-                st.error("Transcription failed.")
-
-            # Cleanup the temporary file
-            # os.remove(saved_file_path)
+    if st.button("Run"):
+        if not uploaded_file:
+            st.error("Please upload an audio file first.")
         else:
-            st.error("Failed to save the file.")
-    else:
-        st.info("Please upload an audio file.")
+            with st.spinner("Processing audio..."):
+                saved_file_path = save_and_convert_uploaded_file(uploaded_file)
+                if saved_file_path:
+                    # Transcribe in chunks if needed
+                    audio = AudioSegment.from_file(saved_file_path)
+                    if len(audio) > 20 * 60 * 1000:
+                        parts = split_audio(saved_file_path)
+                    else:
+                        parts = [saved_file_path]
 
-    # ----- Multi-select for additional tasks -----
-    st.write("### Additional Analysis Options")
-    task_options = st.multiselect(
-        "Select tasks to perform",
-        ["Clean Transcript", "Analyze Transcript", "Summary"]
-    )
-    if st.button("Run Selected Tasks"):
-        cleaned_version = None
-        analysis_result = None
-        summary_result = None
+                    full_transcription = ""
+                    for part in parts:
+                        part_transcription = transcribe_audio(part)
+                        if part_transcription:
+                            full_transcription += part_transcription
+                        os.remove(part)
 
-        if "Clean Transcript" in task_options and st.session_state.transcription:
-            cleaned_version = clean_transcript(st.session_state.transcription)
+                    st.session_state.transcription = full_transcription
 
-        if "Analyze Transcript" in task_options and st.session_state.transcription:
-            analysis_result = analyze_transcript(st.session_state.transcription)
+                    # Run selected tasks
+                    cleaned_version = None
+                    analysis_result = None
+                    summary_result = None
 
-        if "Summary" in task_options and st.session_state.transcription:
-            summary_result = summarize_transcript(st.session_state.transcription)
+                    if "Clean Transcript" in task_options:
+                        cleaned_version = clean_transcript(full_transcription)
 
-        if cleaned_version:
-            st.write("**Cleaned Transcript:**", cleaned_version)
-        if analysis_result:
-            st.write("**Analysis:**", analysis_result)
-        if summary_result:
-            st.write("**Summary:**", summary_result)
+                    if "Analyze Transcript" in task_options:
+                        analysis_result = analyze_transcript(full_transcription)
 
-        # If any new data was generated, store in the database
-        if cleaned_version or analysis_result or summary_result:
-            data = {
-                "timestamp": str(datetime.datetime.now()),
-                "cleaned_transcript": cleaned_version if cleaned_version else None,
-                "analysis": analysis_result if analysis_result else None,
-                "summary": summary_result if summary_result else None,
-                "original_transcript": st.session_state.transcription
-            }
-            supabase.table("transcripts").insert(data).execute()
+                    if "Summary" in task_options:
+                        summary_result = summarize_transcript(full_transcription)
+
+                    # Insert into DB
+                    data = {
+                        "timestamp": str(datetime.datetime.now()),
+                        "cleaned_transcript": cleaned_version if cleaned_version else None,
+                        "analysis": analysis_result if analysis_result else None,
+                        "summary": summary_result if summary_result else None,
+                        "original_transcript": full_transcription
+                    }
+                    supabase.table("transcripts").insert(data).execute()
+
+                    # Display results
+                    if full_transcription:
+                        st.write("### Original Transcript")
+                        st.text_area("Raw transcript:", full_transcription, height=300)
+                    if cleaned_version:
+                        st.write("### Cleaned Transcript")
+                        st.write(cleaned_version)
+                    if analysis_result:
+                        st.write("### Analysis")
+                        st.write(analysis_result)
+                    if summary_result:
+                        st.write("### Summary")
+                        st.write(summary_result)
+
+                    # Cleanup
+                    # os.remove(saved_file_path)
+                else:
+                    st.error("Failed to save file.")
 
 with tabs[1]:
     st.header("View Database Records")
