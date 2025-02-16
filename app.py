@@ -123,7 +123,7 @@ def summarize_transcript(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences."
+                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences. Use valid GitHub Markdown in your answer."
                 },
                 {"role": "user", "content": transcript}
             ]
@@ -151,75 +151,79 @@ with tabs[0]:
         if not uploaded_file:
             st.error("Please upload an audio file first.")
         else:
+            # Process audio
             with st.spinner("Processing audio..."):
                 saved_file_path = save_and_convert_uploaded_file(uploaded_file)
+                full_transcription = ""
                 if saved_file_path:
-                    # Transcribe in chunks if needed
                     audio = AudioSegment.from_file(saved_file_path)
                     if len(audio) > 20 * 60 * 1000:
                         parts = split_audio(saved_file_path)
                     else:
                         parts = [saved_file_path]
 
-                    full_transcription = ""
                     for part in parts:
                         part_transcription = transcribe_audio(part)
                         if part_transcription:
                             full_transcription += part_transcription
                         os.remove(part)
 
-                    st.session_state.transcription = full_transcription
+            if full_transcription:
+                st.session_state.transcription = full_transcription
+                cleaned_version = None
+                analysis_result = None
+                summary_result = None
 
-                    # Run selected tasks
-                    cleaned_version = None
-                    analysis_result = None
-                    summary_result = None
-
-                    if "Clean Transcript" in task_options:
+                # Create deliverables with individual spinners
+                if "Clean Transcript" in task_options:
+                    with st.spinner("Creating cleaned transcript..."):
                         cleaned_version = clean_transcript(full_transcription)
 
-                    if "Analyze Transcript" in task_options:
+                if "Analyze Transcript" in task_options:
+                    with st.spinner("Creating analysis..."):
                         analysis_result = analyze_transcript(full_transcription)
 
-                    if "Summary" in task_options:
+                if "Summary" in task_options:
+                    with st.spinner("Creating summary..."):
                         summary_result = summarize_transcript(full_transcription)
 
-                    # Insert into DB
-                    data = {
-                        "timestamp": str(datetime.datetime.now()),
-                        "cleaned_transcript": cleaned_version if cleaned_version else None,
-                        "analysis": analysis_result if analysis_result else None,
-                        "summary": summary_result if summary_result else None,
-                        "original_transcript": full_transcription
-                    }
-                    supabase.table("transcripts").insert(data).execute()
+                # Insert into DB
+                data = {
+                    "timestamp": str(datetime.datetime.now()),
+                    "cleaned_transcript": cleaned_version if cleaned_version else None,
+                    "analysis": analysis_result if analysis_result else None,
+                    "summary": summary_result if summary_result else None,
+                    "original_transcript": full_transcription
+                }
+                supabase.table("transcripts").insert(data).execute()
 
-                    # Display results
-                    if full_transcription:
-                        st.write("### Original Transcript")
+                # Display in expanders
+                if full_transcription:
+                    with st.expander("Raw transcript", expanded=False):
                         st.text_area("Raw transcript:", full_transcription, height=300)
-                    if cleaned_version:
-                        st.write("### Cleaned Transcript")
+                if cleaned_version:
+                    with st.expander("Cleaned Transcript", expanded=False):
                         st.write(cleaned_version)
-                    if analysis_result:
-                        st.write("### Analysis")
+                if analysis_result:
+                    with st.expander("Analysis", expanded=False):
                         st.write(analysis_result)
-                    if summary_result:
-                        st.write("### Summary")
-                        st.write(summary_result)
+                if summary_result:
+                    with st.expander("Summary", expanded=False):
+                        st.markdown(summary_result)
 
-                    # Cleanup
-                    # os.remove(saved_file_path)
-                else:
-                    st.error("Failed to save file.")
+                # Cleanup
+                # os.remove(saved_file_path)
+            else:
+                st.error("Failed to transcribe audio.")
 
 with tabs[1]:
     st.header("View Database Records")
-    result = supabase.table("transcripts").select("*").execute()
-    if result.data:
-        st.write(result.data)
-    else:
-        st.write("No records found.")
+    with st.expander("Database Records", expanded=False):
+        result = supabase.table("transcripts").select("*").execute()
+        if result.data:
+            st.write(result.data)
+        else:
+            st.write("No records found.")
 
 with tabs[2]:
     st.header("LLM on Data")
@@ -249,7 +253,7 @@ with tabs[2]:
                             messages=[
                                 {
                                     "role": "system",
-                                    "content": "You are a helpful assistant that analyzes the provided data."
+                                    "content": "You are a helpful assistant that analyzes the provided data. Return your answer in valid GitHub Markdown."
                                 },
                                 {
                                     "role": "user",
@@ -257,6 +261,7 @@ with tabs[2]:
                                 }
                             ]
                         )
-                        st.write("**LLM Output:**", completion.choices[0].message.content)
+                        with st.expander("LLM Output", expanded=False):
+                            st.markdown(completion.choices[0].message.content)
     else:
         st.write("No data found in the database.")
