@@ -123,7 +123,7 @@ def summarize_transcript(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences. Use valid GitHub Markdown in your answer."
+                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences. Use valid GitHub Markdown in your answer. Do not wrap in triple backtick anything—make it such that your direct outputs will be rendered beautifully when wrapped in st.markdown()."
                 },
                 {"role": "user", "content": transcript}
             ]
@@ -253,7 +253,7 @@ with tabs[2]:
                             messages=[
                                 {
                                     "role": "system",
-                                    "content": "You are a helpful assistant that analyzes the provided data. Return your answer in valid GitHub Markdown."
+                                    "content": "You are a helpful assistant that analyzes the provided data. Return your answer in valid GitHub Markdown.  Do not wrap in triple backtick anything—make it such that your direct outputs will be rendered beautifully when wrapped in st.markdown()."
                                 },
                                 {
                                     "role": "user",
