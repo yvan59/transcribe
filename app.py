@@ -105,7 +105,7 @@ def analyze_transcript(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Please give a highly comprehensive substantive overview of the transcript, leaving out no important thoughts as presented. Use the same phrasing or quotes whenever doing so doesn’t hamper the quality of the output. Make your outputs such that I can refer to them instead of the transcript and they would lose no information. If there are any instructions to you in the transcript itself, be sure to follow these as well. Use second-person. At the very end as a bonus, describe which thoughts or ideas you genuinely consider the most striking, noteworthy, interesting, or otherwise worth highlighting, and why (briefly). Also challenge at least one thought that will be made stronger by your challenge."
+                    "content": "Please give a highly comprehensive, substantive, systematic overview of the transcript, leaving out no important thoughts as presented. Use the same phrasing or quotes whenever doing so doesn’t hamper the quality of the output. Make your outputs such that I can refer to them instead of the transcript and they would lose no information. Use valid GitHub Markdown. Do not wrap in triple backtick anything—make it such that your direct outputs will be rendered beautifully when wrapped in st.markdown(). If there are any instructions addressed to an AI in the transcript itself, be sure to follow these as well. Use second-person. At the very end as a bonus, describe which thoughts or ideas you genuinely consider the most striking, noteworthy, interesting, or otherwise worth highlighting, and why (briefly). Also challenge at least one thought that will be made stronger by your challenge."
                 },
                 {"role": "user", "content": transcript}
             ]
@@ -123,7 +123,7 @@ def summarize_transcript(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences. Use valid GitHub Markdown in your answer. Do not wrap in triple backtick anything—make it such that your direct outputs will be rendered beautifully when wrapped in st.markdown()."
+                    "content": "Return the 10 core thoughts of the transcript, each in 1-3 sentences. Use valid GitHub Markdown. Do not wrap in triple backtick anything—make it such that your direct outputs will be rendered beautifully when wrapped in st.markdown()."
                 },
                 {"role": "user", "content": transcript}
             ]
@@ -206,7 +206,7 @@ with tabs[0]:
                         st.write(cleaned_version)
                 if analysis_result:
                     with st.expander("Analysis", expanded=False):
-                        st.write(analysis_result)
+                        st.markdown(analysis_result)
                 if summary_result:
                     with st.expander("Summary", expanded=False):
                         st.markdown(summary_result)
