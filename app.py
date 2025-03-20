@@ -87,7 +87,7 @@ def clean_transcript(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Please clean up this transcript, removing filler words, fixing grammar/spelling, and preserving meaning. You may add simple markup (italics or bold) if it clarifies the text, but keep the transcript content otherwise the same."
+                    "content": "Please clean up this transcript, removing filler words, fixing grammar/spelling (some words may have been transcribed incorrectly, infer this), and preserving meaning. You may add simple markup (italics or bold) if it clarifies the text, but keep the transcript content otherwise the same."
                 },
                 {"role": "user", "content": transcript}
             ]
