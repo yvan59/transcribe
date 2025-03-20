@@ -34,7 +34,7 @@ def transcribe_audio(audio_file_path):
         client = OpenAI(api_key=st.secrets["API"])
         with open(audio_file_path, "rb") as audio_file:
             transcript = client.audio.transcriptions.create(
-                model="whisper-1",
+                model="gpt-4o-transcribe",
                 file=audio_file
             )
         return transcript.text
