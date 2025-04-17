@@ -83,7 +83,7 @@ def clean_transcript(transcript):
     try:
         client = OpenAI(api_key=st.secrets["API"])
         completion = client.chat.completions.create(
-            model="o3-mini",
+            model="gpt-4.1-2025-04-14",
             messages=[
                 {
                     "role": "system",
@@ -101,7 +101,7 @@ def analyze_transcript(transcript):
     try:
         client = OpenAI(api_key=st.secrets["API"])
         completion = client.chat.completions.create(
-            model="o1",
+            model="gpt-4.1-2025-04-14",
             messages=[
                 {
                     "role": "system",
@@ -119,7 +119,7 @@ def summarize_transcript(transcript):
     try:
         client = OpenAI(api_key=st.secrets["API"])
         completion = client.chat.completions.create(
-            model="o3-mini",
+            model="gpt-4.1-2025-04-14",
             messages=[
                 {
                     "role": "system",
@@ -249,7 +249,7 @@ with tabs[2]:
                     if combined_text and user_prompt:
                         client = OpenAI(api_key=st.secrets["API"])
                         completion = client.chat.completions.create(
-                            model="o3-mini",
+                            model="gpt-4.1-2025-04-14",
                             messages=[
                                 {
                                     "role": "system",
