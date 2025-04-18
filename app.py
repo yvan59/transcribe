@@ -132,6 +132,42 @@ def summarize_transcript(transcript):
     except Exception as e:
         st.error(f"An error occurred during summary: {e}")
         return None
+
+def extract_action_items(transcript):
+    try:
+        client = OpenAI(api_key=st.secrets["API"])
+        completion = client.chat.completions.create(
+            model="gpt-4.1-2025-04-14",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Return a bullet list of every explicit, concrete action item called for in the transcript. Each bullet should start with an imperative verb and be maximally specific. No commentary."
+                },
+                {"role": "user", "content": transcript}
+            ]
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        st.error(f"An error occurred extracting action items: {e}")
+        return None
+
+def extract_top_quotes(transcript):
+    try:
+        client = OpenAI(api_key=st.secrets["API"])
+        completion = client.chat.completions.create(
+            model="gpt-4.1-2025-04-14",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Identify the five most illustrative quotes/excerpts (≤ 40 words each). Output each as: “quote” — one‑sentence reason this quote was selected."
+                },
+                {"role": "user", "content": transcript}
+            ]
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        st.error(f"An error occurred extracting quotes: {e}")
+        return None
 # ----------------------------------------------------
 
 # Create tabs for the app
@@ -141,7 +177,7 @@ with tabs[0]:
     st.title('Transcribe Audio')
 
     # Pre-select tasks
-    tasks = ["Clean Transcript", "Analyze Transcript", "Summary"]
+    tasks = ["Clean Transcript", "Analyze Transcript", "Summary", "Action Items", "Top Quotes"]
     task_options = st.multiselect("Select tasks to perform:", tasks, default=tasks)
 
     # User file upload section
@@ -173,6 +209,8 @@ with tabs[0]:
                 cleaned_version = None
                 analysis_result = None
                 summary_result = None
+                action_items_result = None
+                top_quotes_result = None
 
                 # Create deliverables with individual spinners
                 if "Clean Transcript" in task_options:
@@ -187,12 +225,22 @@ with tabs[0]:
                     with st.spinner("Creating summary..."):
                         summary_result = summarize_transcript(full_transcription)
 
+                if "Action Items" in task_options:
+                    with st.spinner("Extracting action items..."):
+                        action_items_result = extract_action_items(full_transcription)
+
+                if "Top Quotes" in task_options:
+                    with st.spinner("Extracting top quotes..."):
+                        top_quotes_result = extract_top_quotes(full_transcription)
+
                 # Insert into DB
                 data = {
                     "timestamp": str(datetime.datetime.now()),
                     "cleaned_transcript": cleaned_version if cleaned_version else None,
                     "analysis": analysis_result if analysis_result else None,
                     "summary": summary_result if summary_result else None,
+                    "action_items": action_items_result if action_items_result else None,
+                    "top_quotes": top_quotes_result if top_quotes_result else None,
                     "original_transcript": full_transcription
                 }
                 supabase.table("transcripts").insert(data).execute()
@@ -210,6 +258,12 @@ with tabs[0]:
                 if summary_result:
                     with st.expander("Summary", expanded=False):
                         st.markdown(summary_result)
+                if action_items_result:
+                    with st.expander("Action Items", expanded=False):
+                        st.markdown(action_items_result)
+                if top_quotes_result:
+                    with st.expander("Top Quotes", expanded=False):
+                        st.markdown(top_quotes_result)
 
                 # Cleanup
                 # os.remove(saved_file_path)
