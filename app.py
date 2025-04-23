@@ -141,7 +141,7 @@ def extract_action_items(transcript):
             messages=[
                 {
                     "role": "system",
-                    "content": "Return a bullet list of every explicit, concrete action item called for in the transcript. Each bullet should start with an imperative verb and be maximally specific. No commentary."
+                    "content": "Return a bullet list of any explicit, concrete action item that was expressly called for in the transcript. This should ONLY apply to very specific concrete actions the speaker referenced taking or potentially taking at some future 'later' point. This should not be an attempt to turn the full transcript into a to-do list. Just scan this otherwise ideas-heavy monologue for any practical action items mentioned and grab those here. Each bullet should start with an imperative verb and be maximally specific. No commentary."
                 },
                 {"role": "user", "content": transcript}
             ]
